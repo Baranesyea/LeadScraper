@@ -25,7 +25,7 @@ const fundingLabel: Record<string, string> = {
 export function CompanyCard({ company, onSelect }: CompanyCardProps) {
   return (
     <div className="block group cursor-pointer" onClick={() => onSelect?.(company)}>
-      <Card className="h-full transition-colors hover:border-foreground/20">
+      <Card className="h-full hover:border-foreground/20 hover:shadow-md hover:-translate-y-0.5">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">

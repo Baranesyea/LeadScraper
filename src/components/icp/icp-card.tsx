@@ -38,7 +38,7 @@ export function IcpCard({ icp, onDelete }: IcpCardProps) {
           : null
 
   return (
-    <Card className="group transition-colors hover:border-foreground/20">
+    <Card className="group hover:border-foreground/20 hover:shadow-md hover:-translate-y-0.5">
       <Link href={`/icp/${icp.id}`}>
         <CardHeader>
           <div className="flex items-start justify-between">

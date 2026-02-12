@@ -27,7 +27,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   React.useEffect(() => { setMounted(true) }, [])
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur-sm px-4 sm:px-6">
       {/* Mobile menu button */}
       <Button
         variant="ghost"
@@ -44,7 +44,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         <Input
           type="search"
           placeholder="Search companies, contacts..."
-          className="pl-8 bg-muted/50"
+          className="pl-8 bg-muted/50 transition-all duration-200 focus:ring-2 focus:ring-ring focus:bg-background"
         />
       </div>
 
@@ -62,7 +62,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
         {/* User menu */}
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-accent">
+          <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-accent transition-colors duration-150">
             <Avatar className="h-8 w-8">
               <AvatarFallback className="text-xs">FL</AvatarFallback>
             </Avatar>

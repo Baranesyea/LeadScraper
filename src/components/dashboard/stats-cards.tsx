@@ -48,10 +48,10 @@ export function StatsCards({ stats }: StatsCardsProps) {
         const value = stats[kpi.key]
 
         return (
-          <Card key={kpi.key}>
+          <Card key={kpi.key} className="hover:shadow-md hover:-translate-y-0.5">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted transition-colors group-hover:bg-primary/10">
                   <Icon className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <Badge

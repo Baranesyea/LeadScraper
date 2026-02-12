@@ -43,23 +43,50 @@ function SheetContent({ children, className, side = "right", size = "sm", ...pro
   const { open, setOpen } = React.useContext(SheetContext)
   const [mounted, setMounted] = React.useState(false)
   const [visible, setVisible] = React.useState(false)
+  const [shouldRender, setShouldRender] = React.useState(false)
 
   React.useEffect(() => { setMounted(true) }, [])
 
   React.useEffect(() => {
     if (open) {
-      requestAnimationFrame(() => setVisible(true))
+      setShouldRender(true)
+      // Double rAF ensures browser paints initial off-screen state before animating in
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setVisible(true)
+        })
+      })
     } else {
       setVisible(false)
+      const timer = setTimeout(() => setShouldRender(false), 300)
+      return () => clearTimeout(timer)
     }
   }, [open])
 
-  if (!mounted || !open) return null
+  // Close on ESC
+  React.useEffect(() => {
+    if (!open) return
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false)
+    }
+    document.addEventListener("keydown", handleKey)
+    return () => document.removeEventListener("keydown", handleKey)
+  }, [open, setOpen])
+
+  // Lock body scroll
+  React.useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden"
+      return () => { document.body.style.overflow = "" }
+    }
+  }, [open])
+
+  if (!mounted || !shouldRender) return null
 
   const sizeClasses = {
     sm: "w-3/4 max-w-sm",
-    half: "w-full max-w-[50vw]",
-    lg: "w-full max-w-[75vw]",
+    half: "w-[50vw] min-w-[360px]",
+    lg: "w-[75vw]",
   }
 
   const sideClasses = {
@@ -79,12 +106,15 @@ function SheetContent({ children, className, side = "right", size = "sm", ...pro
   return createPortal(
     <div className="fixed inset-0 z-50">
       <div
-        className={cn("fixed inset-0 bg-black/50 transition-opacity duration-300", visible ? "opacity-100" : "opacity-0")}
+        className={cn(
+          "fixed inset-0 bg-black/50 transition-opacity duration-300",
+          visible ? "opacity-100" : "opacity-0"
+        )}
         onClick={() => setOpen(false)}
       />
       <div
         className={cn(
-          "fixed z-50 gap-4 bg-background p-6 shadow-lg transition-transform duration-300 ease-in-out overflow-y-auto",
+          "fixed z-50 bg-background p-6 shadow-2xl transition-transform duration-300 ease-out",
           sideClasses[side],
           slideClasses[side],
           className,
@@ -93,7 +123,7 @@ function SheetContent({ children, className, side = "right", size = "sm", ...pro
       >
         {children}
         <button
-          className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100"
+          className="absolute right-4 top-4 z-10 rounded-full p-1.5 opacity-70 hover:opacity-100 hover:bg-muted transition-all"
           onClick={() => setOpen(false)}
         >
           <X className="h-4 w-4" />
