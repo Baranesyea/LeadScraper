@@ -1,0 +1,232 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// ICP (Ideal Customer Profile)
+// ==========================================
+
+model IcpProfile {
+  id              String   @id @default(cuid())
+  name            String
+  industries      String   @default("[]") // JSON array
+  companySizeMin  Int?
+  companySizeMax  Int?
+  locations       String   @default("[]") // JSON array
+  technologies    String   @default("[]") // JSON array
+  fundingStages   String   @default("[]") // JSON array
+  revenueMin      Int?
+  revenueMax      Int?
+  keywords        String   @default("[]") // JSON array
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  companies Company[]
+}
+
+// ==========================================
+// Company
+// ==========================================
+
+model Company {
+  id              String   @id @default(cuid())
+  name            String
+  description     String   @default("")
+  industry        String   @default("")
+  employeeCount   Int      @default(0)
+  employeeRange   String   @default("")
+  location        String   @default("")
+  country         String   @default("")
+  website         String   @default("")
+  logoUrl         String?
+  fundingStage    String   @default("")
+  fundingAmount   Int?
+  lastFundingDate String?
+  technologies    String   @default("[]") // JSON array
+  enrichedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  matchedIcpId String?
+  matchedIcp   IcpProfile? @relation(fields: [matchedIcpId], references: [id])
+
+  contacts Contact[]
+  news     CompanyNews[]
+
+  @@index([industry])
+  @@index([matchedIcpId])
+}
+
+model CompanyNews {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title       String
+  source      String   @default("")
+  url         String   @default("")
+  publishedAt String   @default("")
+  snippet     String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@index([companyId])
+}
+
+// ==========================================
+// Contact
+// ==========================================
+
+model Contact {
+  id            String   @id @default(cuid())
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  firstName     String
+  lastName      String
+  fullName      String
+  title         String   @default("")
+  department    String   @default("")
+  photoUrl      String?
+  workEmail     String?
+  personalEmail String?
+  workPhone     String?
+  personalPhone String?
+  linkedinUrl   String?
+  facebookUrl   String?
+  instagramUrl  String?
+  enrichedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  articles ContactArticle[]
+  emails   Email[]
+
+  @@index([companyId])
+  @@index([workEmail])
+}
+
+model ContactArticle {
+  id          String   @id @default(cuid())
+  contactId   String
+  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  title       String
+  source      String   @default("")
+  url         String   @default("")
+  publishedAt String   @default("")
+  snippet     String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@index([contactId])
+}
+
+// ==========================================
+// Email Outreach
+// ==========================================
+
+model Email {
+  id           String    @id @default(cuid())
+  contactId    String
+  contact      Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  subject      String
+  body         String
+  status       String    @default("draft") // draft, scheduled, sent, opened, replied
+  sentAt       DateTime?
+  openedAt     DateTime?
+  repliedAt    DateTime?
+  scheduledFor DateTime?
+  sequenceId   String?
+  sequence     EmailSequence? @relation(fields: [sequenceId], references: [id])
+  sequenceStep Int?
+  trackingId   String?   @unique // for open/click tracking
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([contactId])
+  @@index([sequenceId])
+  @@index([status])
+  @@index([trackingId])
+}
+
+model EmailSequence {
+  id        String   @id @default(cuid())
+  name      String
+  status    String   @default("draft") // draft, active, paused, completed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  steps             SequenceStep[]
+  emails            Email[]
+  enrolledContacts  SequenceEnrollment[]
+}
+
+model SequenceStep {
+  id         String        @id @default(cuid())
+  sequenceId String
+  sequence   EmailSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  order      Int
+  delayDays  Int           @default(0)
+  subject    String
+  body       String
+  type       String        @default("follow-up") // initial, follow-up, breakup
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([sequenceId])
+  @@unique([sequenceId, order])
+}
+
+model SequenceEnrollment {
+  id         String        @id @default(cuid())
+  sequenceId String
+  sequence   EmailSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  contactId  String
+  currentStep Int          @default(0)
+  status     String        @default("active") // active, paused, completed, bounced
+  nextSendAt DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@unique([sequenceId, contactId])
+  @@index([sequenceId])
+  @@index([nextSendAt])
+}
+
+// ==========================================
+// Settings
+// ==========================================
+
+model Settings {
+  id             String  @id @default("default")
+  smtpHost       String  @default("")
+  smtpPort       Int     @default(587)
+  smtpUser       String  @default("")
+  smtpPass       String  @default("") // encrypted in production
+  fromEmail      String  @default("")
+  fromName       String  @default("")
+  dailySendLimit Int     @default(5)
+  aiApiKey       String  @default("") // OpenAI/Anthropic key
+  aiProvider     String  @default("anthropic") // anthropic, openai
+}
+
+// ==========================================
+// Scrape Jobs
+// ==========================================
+
+model ScrapeJob {
+  id          String   @id @default(cuid())
+  icpId       String?
+  status      String   @default("pending") // pending, running, completed, failed
+  type        String   @default("company_discovery") // company_discovery, contact_enrichment, news_scan
+  query       String   @default("") // search query used
+  results     String   @default("{}") // JSON results summary
+  error       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([status])
+  @@index([icpId])
+}
