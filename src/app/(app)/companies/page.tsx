@@ -7,9 +7,11 @@ import { EmptyState } from "@/components/shared/empty-state"
 import { CompanyCard } from "@/components/companies/company-card"
 import { CompanyTable } from "@/components/companies/company-table"
 import { CompanyFilters, type CompanyFilterValues } from "@/components/companies/company-filters"
+import { CompanyPanel } from "@/components/companies/company-panel"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCompanies } from "@/hooks/use-companies"
+import type { Company } from "@/types"
 import { Building2, Sparkles } from "lucide-react"
 
 export default function CompaniesPage() {
@@ -20,6 +22,13 @@ export default function CompaniesPage() {
     fundingStage: "",
     companySize: "",
   })
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
+  const [panelOpen, setPanelOpen] = useState(false)
+
+  function handleSelectCompany(company: Company) {
+    setSelectedCompany(company)
+    setPanelOpen(true)
+  }
 
   // Debounce the search value by 300ms
   const [debouncedSearch, setDebouncedSearch] = useState(filters.search)
@@ -93,12 +102,18 @@ export default function CompaniesPage() {
       ) : view === "grid" ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((company) => (
-            <CompanyCard key={company.id} company={company} />
+            <CompanyCard key={company.id} company={company} onSelect={handleSelectCompany} />
           ))}
         </div>
       ) : (
-        <CompanyTable companies={filtered} />
+        <CompanyTable companies={filtered} onSelect={handleSelectCompany} />
       )}
+
+      <CompanyPanel
+        company={selectedCompany}
+        open={panelOpen}
+        onOpenChange={setPanelOpen}
+      />
     </div>
   )
 }

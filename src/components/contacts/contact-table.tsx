@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
 import { Search, ExternalLink } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
@@ -17,13 +16,14 @@ import type { Contact } from "@/types"
 
 interface ContactTableProps {
   contacts: Contact[]
+  onSelect?: (contact: Contact) => void
 }
 
 function getInitials(firstName: string, lastName: string): string {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
 }
 
-export function ContactTable({ contacts }: ContactTableProps) {
+export function ContactTable({ contacts, onSelect }: ContactTableProps) {
   const [search, setSearch] = useState("")
 
   const filtered = contacts.filter((contact) => {
@@ -69,19 +69,20 @@ export function ContactTable({ contacts }: ContactTableProps) {
               </TableRow>
             ) : (
               filtered.map((contact) => (
-                <TableRow key={contact.id}>
+                <TableRow
+                  key={contact.id}
+                  className="cursor-pointer"
+                  onClick={() => onSelect?.(contact)}
+                >
                   <TableCell>
-                    <Link
-                      href={`/contacts/${contact.id}`}
-                      className="flex items-center gap-3 hover:underline"
-                    >
+                    <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="text-xs">
                           {getInitials(contact.firstName, contact.lastName)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="font-medium">{contact.fullName}</span>
-                    </Link>
+                      <span className="font-medium hover:underline">{contact.fullName}</span>
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{contact.title}</TableCell>
                   <TableCell>{contact.companyName}</TableCell>
@@ -98,6 +99,7 @@ export function ContactTable({ contacts }: ContactTableProps) {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex text-muted-foreground hover:text-foreground"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <ExternalLink className="h-4 w-4" />
                       </a>
@@ -106,12 +108,12 @@ export function ContactTable({ contacts }: ContactTableProps) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Link
-                      href={`/contacts/${contact.id}`}
+                    <button
                       className="inline-flex h-8 items-center rounded-md px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => onSelect?.(contact)}
                     >
                       View
-                    </Link>
+                    </button>
                   </TableCell>
                 </TableRow>
               ))

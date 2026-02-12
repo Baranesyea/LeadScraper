@@ -1,12 +1,22 @@
 "use client"
 
+import { useState } from "react"
 import { PageHeader } from "@/components/shared/page-header"
 import { ContactTable } from "@/components/contacts/contact-table"
+import { ContactPanel } from "@/components/contacts/contact-panel"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useContacts } from "@/hooks/use-contacts"
+import type { Contact } from "@/types"
 
 export default function ContactsPage() {
   const { data, isLoading } = useContacts()
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
+  const [panelOpen, setPanelOpen] = useState(false)
+
+  function handleSelectContact(contact: Contact) {
+    setSelectedContact(contact)
+    setPanelOpen(true)
+  }
 
   const contacts = data?.data ?? []
   const total = data?.total ?? 0
@@ -34,7 +44,13 @@ export default function ContactsPage() {
         title="Contacts"
         description={`${total} contacts total`}
       />
-      <ContactTable contacts={contacts} />
+      <ContactTable contacts={contacts} onSelect={handleSelectContact} />
+
+      <ContactPanel
+        contact={selectedContact}
+        open={panelOpen}
+        onOpenChange={setPanelOpen}
+      />
     </div>
   )
 }

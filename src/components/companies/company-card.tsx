@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import type { Company } from "@/types"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -9,6 +8,7 @@ import { Building2, Globe, MapPin, Users, DollarSign, Sparkles } from "lucide-re
 
 interface CompanyCardProps {
   company: Company
+  onSelect?: (company: Company) => void
 }
 
 const fundingLabel: Record<string, string> = {
@@ -22,9 +22,9 @@ const fundingLabel: Record<string, string> = {
   bootstrapped: "Bootstrapped",
 }
 
-export function CompanyCard({ company }: CompanyCardProps) {
+export function CompanyCard({ company, onSelect }: CompanyCardProps) {
   return (
-    <Link href={`/companies/${company.id}`} className="block group">
+    <div className="block group cursor-pointer" onClick={() => onSelect?.(company)}>
       <Card className="h-full transition-colors hover:border-foreground/20">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
@@ -65,7 +65,6 @@ export function CompanyCard({ company }: CompanyCardProps) {
                 <span
                   className="truncate text-foreground underline-offset-4 group-hover:underline"
                   onClick={(e) => {
-                    e.preventDefault()
                     e.stopPropagation()
                     window.open(company.website, "_blank", "noopener,noreferrer")
                   }}
@@ -85,7 +84,6 @@ export function CompanyCard({ company }: CompanyCardProps) {
             variant="ghost"
             size="sm"
             onClick={(e) => {
-              e.preventDefault()
               e.stopPropagation()
             }}
           >
@@ -94,6 +92,6 @@ export function CompanyCard({ company }: CompanyCardProps) {
           </Button>
         </CardFooter>
       </Card>
-    </Link>
+    </div>
   )
 }

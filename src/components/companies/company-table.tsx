@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import Link from "next/link"
 import type { Company } from "@/types"
 import {
   Table,
@@ -17,6 +16,7 @@ import { ArrowUpDown } from "lucide-react"
 
 interface CompanyTableProps {
   companies: Company[]
+  onSelect?: (company: Company) => void
 }
 
 type SortKey = "name" | "industry" | "employeeCount" | "location" | "fundingStage"
@@ -44,7 +44,7 @@ const fundingOrder: Record<string, number> = {
   bootstrapped: -1,
 }
 
-export function CompanyTable({ companies }: CompanyTableProps) {
+export function CompanyTable({ companies, onSelect }: CompanyTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("name")
   const [sortDir, setSortDir] = useState<SortDir>("asc")
 
@@ -110,14 +110,15 @@ export function CompanyTable({ companies }: CompanyTableProps) {
       </TableHeader>
       <TableBody>
         {sorted.map((company) => (
-          <TableRow key={company.id} className="cursor-pointer">
+          <TableRow
+            key={company.id}
+            className="cursor-pointer"
+            onClick={() => onSelect?.(company)}
+          >
             <TableCell>
-              <Link
-                href={`/companies/${company.id}`}
-                className="font-medium hover:underline underline-offset-4"
-              >
+              <span className="font-medium hover:underline underline-offset-4">
                 {company.name}
-              </Link>
+              </span>
             </TableCell>
             <TableCell>
               <Badge variant="secondary">{company.industry}</Badge>
@@ -148,9 +149,7 @@ export function CompanyTable({ companies }: CompanyTableProps) {
               </div>
             </TableCell>
             <TableCell className="text-right">
-              <Link href={`/companies/${company.id}`}>
-                <Button variant="ghost" size="sm">View</Button>
-              </Link>
+              <Button variant="ghost" size="sm" onClick={() => onSelect?.(company)}>View</Button>
             </TableCell>
           </TableRow>
         ))}
