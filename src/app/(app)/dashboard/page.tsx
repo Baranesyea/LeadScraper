@@ -1,11 +1,35 @@
+"use client"
+
 import { PageHeader } from "@/components/shared/page-header"
 import { StatsCards } from "@/components/dashboard/stats-cards"
 import { PipelineChart } from "@/components/dashboard/pipeline-chart"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { QuickActions } from "@/components/dashboard/quick-actions"
-import { mockDashboardStats, mockActivityItems } from "@/lib/mock-data"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useDashboardStats, useRecentActivity } from "@/hooks/use-dashboard"
+import type { DashboardStats } from "@/types"
+
+const defaultStats: DashboardStats = {
+  totalCompanies: 0,
+  totalContacts: 0,
+  emailsSentThisWeek: 0,
+  emailsSentTotal: 0,
+  openRate: 0,
+  replyRate: 0,
+  pipelineStages: [],
+}
 
 export default function DashboardPage() {
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    error: statsError,
+  } = useDashboardStats()
+  const { data: activityItems, isLoading: activityLoading } =
+    useRecentActivity()
+
+  const dashboardStats = stats ?? defaultStats
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -13,14 +37,38 @@ export default function DashboardPage() {
         description="Overview of your sales pipeline and outreach activity."
       />
 
-      <StatsCards stats={mockDashboardStats} />
+      {statsLoading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-xl" />
+          ))}
+        </div>
+      ) : statsError ? (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          Failed to load dashboard stats. Please try refreshing the page.
+        </div>
+      ) : (
+        <StatsCards stats={dashboardStats} />
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <div className="lg:col-span-3">
-          <PipelineChart stages={mockDashboardStats.pipelineStages} />
+          {statsLoading ? (
+            <Skeleton className="h-80 w-full rounded-xl" />
+          ) : (
+            <PipelineChart stages={dashboardStats.pipelineStages} />
+          )}
         </div>
         <div className="lg:col-span-2">
-          <RecentActivity items={mockActivityItems} />
+          {activityLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <RecentActivity items={activityItems ?? []} />
+          )}
         </div>
       </div>
 

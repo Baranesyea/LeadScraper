@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/table"
 import { EmptyState } from "@/components/shared/empty-state"
 import { Mail } from "lucide-react"
-import { mockEmailDrafts } from "@/lib/mock-data"
 import { EMAIL_STATUSES } from "@/lib/constants"
+import type { EmailDraft } from "@/types"
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
@@ -31,8 +31,12 @@ function formatDate(dateStr: string | null): string {
   })
 }
 
-export function EmailList() {
-  if (mockEmailDrafts.length === 0) {
+interface EmailListProps {
+  emails: EmailDraft[]
+}
+
+export function EmailList({ emails }: EmailListProps) {
+  if (emails.length === 0) {
     return (
       <EmptyState
         icon={Mail}
@@ -55,7 +59,7 @@ export function EmailList() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {mockEmailDrafts.map((email) => {
+          {emails.map((email) => {
             const statusConfig = EMAIL_STATUSES.find(
               (s) => s.value === email.status
             )

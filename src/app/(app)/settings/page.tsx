@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { PageHeader } from "@/components/shared/page-header"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
@@ -10,13 +10,135 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Mail, Shield, Zap, Bell } from "lucide-react"
+import { useSettings, useUpdateSettings } from "@/hooks/use-settings"
 
 export default function SettingsPage() {
-  const [emailConnected, setEmailConnected] = useState(false)
-  const [dailyLimit] = useState(5)
+  const { data: settings, isLoading } = useSettings()
+  const { mutateAsync, isPending } = useUpdateSettings()
+
+  // SMTP form state
+  const [smtpHost, setSmtpHost] = useState("")
+  const [smtpPort, setSmtpPort] = useState("")
+  const [smtpUser, setSmtpUser] = useState("")
+  const [smtpPass, setSmtpPass] = useState("")
+  const [fromEmail, setFromEmail] = useState("")
+
+  // AI / API Keys form state
+  const [aiApiKey, setAiApiKey] = useState("")
+  const [aiProvider, setAiProvider] = useState("")
+
+  // Preferences (local only, not in SettingsData)
   const [notifications, setNotifications] = useState(true)
   const [autoEnrich, setAutoEnrich] = useState(false)
+
+  // Initialize form state from API data
+  useEffect(() => {
+    if (settings) {
+      setSmtpHost(settings.smtpHost ?? "")
+      setSmtpPort(settings.smtpPort ? String(settings.smtpPort) : "")
+      setSmtpUser(settings.smtpUser ?? "")
+      setSmtpPass(settings.smtpPass ?? "")
+      setFromEmail(settings.fromEmail ?? "")
+      setAiApiKey(settings.aiApiKey ?? "")
+      setAiProvider(settings.aiProvider ?? "")
+    }
+  }, [settings])
+
+  const emailConnected = Boolean(settings?.smtpHost)
+
+  const handleConnectEmail = async () => {
+    try {
+      await mutateAsync({
+        smtpHost,
+        smtpPort: smtpPort ? Number(smtpPort) : 587,
+        smtpUser,
+        smtpPass,
+        fromEmail,
+      })
+      toast.success("Email connected successfully")
+    } catch {
+      toast.error("Failed to save email settings")
+    }
+  }
+
+  const handleDisconnectEmail = async () => {
+    try {
+      await mutateAsync({
+        smtpHost: "",
+        smtpPort: 0,
+        smtpUser: "",
+        smtpPass: "",
+        fromEmail: "",
+      })
+      toast.success("Email disconnected")
+    } catch {
+      toast.error("Failed to disconnect email")
+    }
+  }
+
+  const handleSaveApiKeys = async () => {
+    try {
+      await mutateAsync({ aiApiKey, aiProvider })
+      toast.success("API keys saved successfully")
+    } catch {
+      toast.error("Failed to save API keys")
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Settings"
+          description="Manage your account, email configuration, and preferences."
+        />
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-72 mt-2" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-36" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-16 w-full" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-32" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-28" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -44,8 +166,8 @@ export default function SettingsPage() {
                   <Mail className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">team@floeey.com</p>
-                  <p className="text-xs text-muted-foreground">Connected via SMTP</p>
+                  <p className="text-sm font-medium">{settings?.fromEmail || settings?.smtpUser}</p>
+                  <p className="text-xs text-muted-foreground">Connected via SMTP ({settings?.smtpHost})</p>
                 </div>
               </div>
               <Badge variant="outline" className="text-green-600 border-green-200">Connected</Badge>
@@ -55,19 +177,50 @@ export default function SettingsPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="smtp-host">SMTP Host</Label>
-                  <Input id="smtp-host" placeholder="smtp.gmail.com" />
+                  <Input
+                    id="smtp-host"
+                    placeholder="smtp.gmail.com"
+                    value={smtpHost}
+                    onChange={(e) => setSmtpHost(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="smtp-port">SMTP Port</Label>
-                  <Input id="smtp-port" placeholder="587" />
+                  <Input
+                    id="smtp-port"
+                    placeholder="587"
+                    value={smtpPort}
+                    onChange={(e) => setSmtpPort(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" type="email" placeholder="you@company.com" />
+                  <Label htmlFor="smtp-user">SMTP Username</Label>
+                  <Input
+                    id="smtp-user"
+                    placeholder="you@company.com"
+                    value={smtpUser}
+                    onChange={(e) => setSmtpUser(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password / App Password</Label>
-                  <Input id="password" type="password" placeholder="••••••••" />
+                  <Label htmlFor="smtp-pass">Password / App Password</Label>
+                  <Input
+                    id="smtp-pass"
+                    type="password"
+                    placeholder="••••••••"
+                    value={smtpPass}
+                    onChange={(e) => setSmtpPass(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="from-email">From Email Address</Label>
+                  <Input
+                    id="from-email"
+                    type="email"
+                    placeholder="you@company.com"
+                    value={fromEmail}
+                    onChange={(e) => setFromEmail(e.target.value)}
+                  />
                 </div>
               </div>
             </div>
@@ -75,12 +228,14 @@ export default function SettingsPage() {
         </CardContent>
         <CardFooter>
           <Button
-            onClick={() => {
-              setEmailConnected(!emailConnected)
-              toast.success(emailConnected ? "Email disconnected" : "Email connected successfully")
-            }}
+            disabled={isPending}
+            onClick={emailConnected ? handleDisconnectEmail : handleConnectEmail}
           >
-            {emailConnected ? "Disconnect" : "Connect Email"}
+            {isPending
+              ? "Saving..."
+              : emailConnected
+                ? "Disconnect"
+                : "Connect Email"}
           </Button>
         </CardFooter>
       </Card>
@@ -105,7 +260,7 @@ export default function SettingsPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-2xl font-bold">{dailyLimit}</span>
+              <span className="text-2xl font-bold">{settings?.dailySendLimit ?? 0}</span>
               <span className="text-sm text-muted-foreground">emails/day</span>
             </div>
           </div>
@@ -155,24 +310,37 @@ export default function SettingsPage() {
             <CardTitle>API Keys</CardTitle>
           </div>
           <CardDescription>
-            API keys for data enrichment services (coming soon).
+            Configure your AI provider and API key for lead enrichment and email generation.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="api-key-1">Enrichment API Key</Label>
-              <Input id="api-key-1" placeholder="sk-..." disabled />
+              <Label htmlFor="ai-provider">AI Provider</Label>
+              <Input
+                id="ai-provider"
+                placeholder="openai"
+                value={aiProvider}
+                onChange={(e) => setAiProvider(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="api-key-2">Search API Key</Label>
-              <Input id="api-key-2" placeholder="sk-..." disabled />
+              <Label htmlFor="ai-api-key">AI API Key</Label>
+              <Input
+                id="ai-api-key"
+                type="password"
+                placeholder="sk-..."
+                value={aiApiKey}
+                onChange={(e) => setAiApiKey(e.target.value)}
+              />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            API integrations will be available in the next update.
-          </p>
         </CardContent>
+        <CardFooter>
+          <Button disabled={isPending} onClick={handleSaveApiKeys}>
+            {isPending ? "Saving..." : "Save API Keys"}
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   )

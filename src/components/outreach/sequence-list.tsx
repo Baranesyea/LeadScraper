@@ -5,7 +5,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { EmptyState } from "@/components/shared/empty-state"
-import { mockEmailSequences } from "@/lib/mock-data"
+import type { EmailSequence } from "@/types"
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
@@ -14,8 +14,12 @@ const STATUS_COLORS: Record<string, string> = {
   completed: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
 }
 
-export function SequenceList() {
-  if (mockEmailSequences.length === 0) {
+interface SequenceListProps {
+  sequences: (EmailSequence & { _count?: { steps?: number; enrolledContacts?: number } })[]
+}
+
+export function SequenceList({ sequences }: SequenceListProps) {
+  if (sequences.length === 0) {
     return (
       <div className="space-y-4">
         <div className="flex justify-end">
@@ -56,46 +60,51 @@ export function SequenceList() {
         </Link>
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {mockEmailSequences.map((sequence) => (
-          <Link key={sequence.id} href={`/outreach/sequences/${sequence.id}`}>
-            <Card className="cursor-pointer transition-colors hover:bg-muted/50">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-base">{sequence.name}</CardTitle>
-                  <Badge
-                    variant="secondary"
-                    className={STATUS_COLORS[sequence.status] ?? ""}
-                  >
-                    {sequence.status}
-                  </Badge>
-                </div>
-                <CardDescription className="text-xs">
-                  Created{" "}
-                  {new Date(sequence.createdAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span>
-                    {sequence.steps.length}{" "}
-                    {sequence.steps.length === 1 ? "step" : "steps"}
-                  </span>
-                  <span>
-                    {sequence.enrolledContactIds.length}{" "}
-                    {sequence.enrolledContactIds.length === 1
-                      ? "contact"
-                      : "contacts"}{" "}
-                    enrolled
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+        {sequences.map((sequence) => {
+          const stepsCount = sequence._count?.steps ?? sequence.steps.length
+          const contactsCount = sequence._count?.enrolledContacts ?? sequence.enrolledContactIds.length
+
+          return (
+            <Link key={sequence.id} href={`/outreach/sequences/${sequence.id}`}>
+              <Card className="cursor-pointer transition-colors hover:bg-muted/50">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-base">{sequence.name}</CardTitle>
+                    <Badge
+                      variant="secondary"
+                      className={STATUS_COLORS[sequence.status] ?? ""}
+                    >
+                      {sequence.status}
+                    </Badge>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Created{" "}
+                    {new Date(sequence.createdAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span>
+                      {stepsCount}{" "}
+                      {stepsCount === 1 ? "step" : "steps"}
+                    </span>
+                    <span>
+                      {contactsCount}{" "}
+                      {contactsCount === 1
+                        ? "contact"
+                        : "contacts"}{" "}
+                      enrolled
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          )
+        })}
       </div>
     </div>
   )

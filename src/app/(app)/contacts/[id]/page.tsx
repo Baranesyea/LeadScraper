@@ -1,23 +1,51 @@
 "use client"
 
-import { use } from "react"
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { useParams } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { PageHeader } from "@/components/shared/page-header"
 import { ContactDetail } from "@/components/contacts/contact-detail"
-import { mockContacts } from "@/lib/mock-data"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useContact } from "@/hooks/use-contacts"
 
-interface ContactPageProps {
-  params: Promise<{ id: string }>
-}
+export default function ContactPage() {
+  const { id } = useParams<{ id: string }>()
+  const { data: contact, isLoading, error } = useContact(id)
 
-export default function ContactPage({ params }: ContactPageProps) {
-  const { id } = use(params)
-  const contact = mockContacts.find((c) => c.id === id)
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Loading..." description="">
+          <Link
+            href="/contacts"
+            className="inline-flex h-8 items-center gap-2 rounded-md border border-input bg-background px-3 text-xs font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Contacts
+          </Link>
+        </PageHeader>
+        <div className="space-y-4">
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-32 w-full rounded-xl" />
+        </div>
+      </div>
+    )
+  }
 
-  if (!contact) {
-    notFound()
+  if (error || !contact) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Contact Not Found" description="The contact you are looking for does not exist.">
+          <Link
+            href="/contacts"
+            className="inline-flex h-8 items-center gap-2 rounded-md border border-input bg-background px-3 text-xs font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Contacts
+          </Link>
+        </PageHeader>
+      </div>
+    )
   }
 
   return (

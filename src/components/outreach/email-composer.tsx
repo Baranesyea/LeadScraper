@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
-import { mockContacts } from "@/lib/mock-data"
+import { useContacts } from "@/hooks/use-contacts"
+import { useCreateEmail } from "@/hooks/use-emails"
 import { MERGE_VARIABLES } from "@/lib/constants"
 import type { Contact } from "@/types"
 
@@ -33,14 +34,13 @@ export function EmailComposer() {
   const [body, setBody] = useState("")
   const bodyRef = useRef<HTMLTextAreaElement>(null)
 
-  const filteredContacts = mockContacts.filter((c) => {
-    const q = toQuery.toLowerCase()
-    return (
-      c.fullName.toLowerCase().includes(q) ||
-      c.companyName.toLowerCase().includes(q) ||
-      (c.workEmail?.toLowerCase().includes(q) ?? false)
-    )
+  const { data: contactsData } = useContacts({
+    search: toQuery.length >= 2 ? toQuery : undefined,
+    limit: 8,
   })
+  const filteredContacts = contactsData?.data ?? []
+
+  const createEmail = useCreateEmail()
 
   const insertMergeVariable = useCallback(
     (variableKey: string) => {
@@ -77,16 +77,46 @@ export function EmailComposer() {
     setShowDropdown(false)
   }
 
-  const handleSend = () => {
-    toast.success("Email scheduled", {
-      description: `Email to ${selectedContact?.fullName ?? toQuery} has been scheduled.`,
-    })
+  const handleSend = async () => {
+    if (!selectedContact) return
+    try {
+      await createEmail.mutateAsync({
+        contactId: selectedContact.id,
+        subject,
+        body,
+        status: "scheduled",
+      })
+      toast.success("Email scheduled", {
+        description: `Email to ${selectedContact.fullName} has been scheduled.`,
+      })
+      setSubject("")
+      setBody("")
+      setSelectedContact(null)
+      setToQuery("")
+    } catch {
+      toast.error("Failed to schedule email", {
+        description: "Something went wrong. Please try again.",
+      })
+    }
   }
 
-  const handleSaveDraft = () => {
-    toast("Draft saved", {
-      description: "Your email has been saved as a draft.",
-    })
+  const handleSaveDraft = async () => {
+    if (!selectedContact) return
+    try {
+      await createEmail.mutateAsync({
+        contactId: selectedContact.id,
+        subject,
+        body,
+        status: "draft",
+      })
+      toast("Draft saved", {
+        description: "Your email has been saved as a draft.",
+      })
+    } catch {
+      toast.error("Failed to save draft", {
+        description: "Something went wrong. Please try again.",
+      })
+    }
   }
 
   return (
@@ -109,10 +139,10 @@ export function EmailComposer() {
                 setTimeout(() => setShowDropdown(false), 200)
               }}
             />
-            {showDropdown && toQuery.length > 0 && filteredContacts.length > 0 && (
+            {showDropdown && toQuery.length >= 2 && filteredContacts.length > 0 && (
               <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover p-1 shadow-md">
                 <div className="max-h-48 overflow-y-auto">
-                  {filteredContacts.slice(0, 8).map((contact) => (
+                  {filteredContacts.map((contact) => (
                     <button
                       key={contact.id}
                       type="button"
@@ -179,11 +209,18 @@ export function EmailComposer() {
         <Separator />
 
         <div className="flex items-center gap-2">
-          <Button onClick={handleSend} disabled={!toQuery || !subject || !body}>
+          <Button
+            onClick={handleSend}
+            disabled={!selectedContact || !subject || !body || createEmail.isPending}
+          >
             <Send className="mr-2 h-4 w-4" />
-            Send
+            {createEmail.isPending ? "Sending..." : "Send"}
           </Button>
-          <Button variant="outline" onClick={handleSaveDraft} disabled={!subject && !body}>
+          <Button
+            variant="outline"
+            onClick={handleSaveDraft}
+            disabled={(!subject && !body) || !selectedContact || createEmail.isPending}
+          >
             Save Draft
           </Button>
         </div>

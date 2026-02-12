@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { PageHeader } from "@/components/shared/page-header"
 import { ViewToggle } from "@/components/shared/view-toggle"
 import { EmptyState } from "@/components/shared/empty-state"
@@ -8,7 +8,8 @@ import { CompanyCard } from "@/components/companies/company-card"
 import { CompanyTable } from "@/components/companies/company-table"
 import { CompanyFilters, type CompanyFilterValues } from "@/components/companies/company-filters"
 import { Button } from "@/components/ui/button"
-import { mockCompanies } from "@/lib/mock-data"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useCompanies } from "@/hooks/use-companies"
 import { Building2, Sparkles } from "lucide-react"
 
 export default function CompaniesPage() {
@@ -20,26 +21,30 @@ export default function CompaniesPage() {
     companySize: "",
   })
 
+  // Debounce the search value by 300ms
+  const [debouncedSearch, setDebouncedSearch] = useState(filters.search)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(filters.search)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [filters.search])
+
+  const { data, isLoading } = useCompanies({
+    search: debouncedSearch || undefined,
+    industry: filters.industry || undefined,
+    fundingStage: filters.fundingStage || undefined,
+  })
+
+  // Client-side filtering for companySize since the API doesn't support it
   const filtered = useMemo(() => {
-    return mockCompanies.filter((company) => {
-      if (
-        filters.search &&
-        !company.name.toLowerCase().includes(filters.search.toLowerCase())
-      ) {
-        return false
-      }
-      if (filters.industry && company.industry !== filters.industry) {
-        return false
-      }
-      if (filters.fundingStage && company.fundingStage !== filters.fundingStage) {
-        return false
-      }
-      if (filters.companySize && company.employeeRange !== filters.companySize) {
-        return false
-      }
-      return true
-    })
-  }, [filters])
+    const companies = data?.data ?? []
+    if (!filters.companySize) return companies
+    return companies.filter(
+      (company) => company.employeeRange === filters.companySize
+    )
+  }, [data, filters.companySize])
 
   return (
     <div className="space-y-6">
@@ -53,7 +58,33 @@ export default function CompaniesPage() {
 
       <CompanyFilters filters={filters} onChange={setFilters} />
 
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-lg border bg-card p-6 space-y-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-9 w-9 rounded-lg" />
+                  <Skeleton className="h-5 w-32" />
+                </div>
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Skeleton className="h-8 flex-1" />
+                <Skeleton className="h-8 w-20" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <EmptyState
           icon={Building2}
           title="No companies found"

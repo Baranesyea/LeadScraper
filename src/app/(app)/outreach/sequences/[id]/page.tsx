@@ -1,23 +1,41 @@
 "use client"
 
-import { use } from "react"
 import Link from "next/link"
+import { useParams } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader } from "@/components/shared/page-header"
 import { SequenceBuilder } from "@/components/outreach/sequence-builder"
-import { mockEmailSequences } from "@/lib/mock-data"
+import { useSequence } from "@/hooks/use-sequences"
 
-export default function SequenceDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
-  const { id } = use(params)
-  const sequence = mockEmailSequences.find((s) => s.id === id)
+export default function SequenceDetailPage() {
+  const { id } = useParams<{ id: string }>()
+  const { data: sequence, isLoading, error } = useSequence(id)
 
-  if (!sequence) {
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Edit Sequence">
+          <Link
+            href="/outreach"
+            className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Link>
+        </PageHeader>
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-1/3" />
+          <Skeleton className="h-6 w-1/4" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !sequence) {
     return (
       <div className="space-y-6">
         <PageHeader title="Sequence Not Found">
