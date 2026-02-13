@@ -37,4 +37,16 @@ export interface Company {
   enrichedAt: string | null;
   matchedIcpId: string | null;
   createdAt: string;
+  // Enrichment — Google Business
+  googleRating: number | null;
+  googleReviewCount: number | null;
+  reviewSentiment: string | null;
+  // Enrichment — Website Analysis
+  crmDetected: string | null;
+  crmName: string | null;
+  websiteQuality: number | null;
+  hasSsl: boolean;
+  hasIdx: boolean;
+  siteAge: string | null;
+  techStack: string[];
 }

@@ -10,7 +10,20 @@ import type {
 
 // ─── Companies ───────────────────────────────────────────────────────────────
 
-export const mockCompanies: Company[] = [
+const companyEnrichmentDefaults = {
+  googleRating: null as number | null,
+  googleReviewCount: null as number | null,
+  reviewSentiment: null as string | null,
+  crmDetected: null as string | null,
+  crmName: null as string | null,
+  websiteQuality: null as number | null,
+  hasSsl: false,
+  hasIdx: false,
+  siteAge: null as string | null,
+  techStack: [] as string[],
+};
+
+export const mockCompanies: Company[] = ([
   {
     id: "comp-001",
     name: "Velora AI",
@@ -439,11 +452,28 @@ export const mockCompanies: Company[] = [
     matchedIcpId: null,
     createdAt: "2025-12-01T10:00:00Z",
   },
-];
+] as Omit<Company, keyof typeof companyEnrichmentDefaults>[]).map((c) => ({ ...companyEnrichmentDefaults, ...c }));
 
 // ─── Contacts ────────────────────────────────────────────────────────────────
 
-export const mockContacts: Contact[] = [
+const contactPipelineDefaults = {
+  emailStatus: "unverified" as const,
+  emailConfidence: 0,
+  emailSource: "scraped",
+  validatedAt: null as string | null,
+  leadScore: 0,
+  leadTier: "cold" as const,
+  icpFitScore: 0,
+  timingScore: 0,
+  dataQualityScore: 0,
+  scoredAt: null as string | null,
+  contactStatus: "new" as const,
+  suppressedAt: null as string | null,
+  suppressReason: null as string | null,
+  lastContactedAt: null as string | null,
+};
+
+export const mockContacts: Contact[] = ([
   // Velora AI
   {
     id: "cont-001",
@@ -1184,7 +1214,7 @@ export const mockContacts: Contact[] = [
     enrichedAt: "2025-12-06T12:00:00Z",
     createdAt: "2025-12-01T10:00:00Z",
   },
-];
+] as Omit<Contact, keyof typeof contactPipelineDefaults>[]).map((c) => ({ ...contactPipelineDefaults, ...c }));
 
 // ─── ICP Profiles ────────────────────────────────────────────────────────────
 

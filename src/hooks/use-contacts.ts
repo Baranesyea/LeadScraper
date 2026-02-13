@@ -25,6 +25,23 @@ function mapContact(raw: any): Contact {
     articles: (raw.articles ?? []).map(mapArticle),
     enrichedAt: raw.enrichedAt ?? null,
     createdAt: raw.createdAt,
+    // Validation
+    emailStatus: raw.emailStatus ?? "unverified",
+    emailConfidence: raw.emailConfidence ?? 0,
+    emailSource: raw.emailSource ?? "scraped",
+    validatedAt: raw.validatedAt ?? null,
+    // Lead scoring
+    leadScore: raw.leadScore ?? 0,
+    leadTier: raw.leadTier ?? "cold",
+    icpFitScore: raw.icpFitScore ?? 0,
+    timingScore: raw.timingScore ?? 0,
+    dataQualityScore: raw.dataQualityScore ?? 0,
+    scoredAt: raw.scoredAt ?? null,
+    // Pipeline
+    contactStatus: raw.contactStatus ?? "new",
+    suppressedAt: raw.suppressedAt ?? null,
+    suppressReason: raw.suppressReason ?? null,
+    lastContactedAt: raw.lastContactedAt ?? null,
   }
 }
 

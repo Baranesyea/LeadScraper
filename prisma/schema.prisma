@@ -55,6 +55,20 @@ model Company {
   matchedIcpId String?
   matchedIcp   IcpProfile? @relation(fields: [matchedIcpId], references: [id])
 
+  // Enrichment — Google Business
+  googleRating      Float?
+  googleReviewCount Int?
+  reviewSentiment   String? // positive, mixed, negative
+
+  // Enrichment — Website Analysis
+  crmDetected       String? // none, basic, full
+  crmName           String?
+  websiteQuality    Int?    // 0-100
+  hasSsl            Boolean @default(false)
+  hasIdx            Boolean @default(false)
+  siteAge           String?
+  techStack         String  @default("[]") // JSON array
+
   contacts Contact[]
   news     CompanyNews[]
 
@@ -101,11 +115,36 @@ model Contact {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  articles ContactArticle[]
-  emails   Email[]
+  // Validation
+  emailStatus       String   @default("unverified") // unverified, verified, risky, invalid, email_missing
+  emailConfidence   Int      @default(0)
+  emailSource       String   @default("scraped") // scraped, discovered, imported
+  validatedAt       DateTime?
+
+  // Lead scoring
+  leadScore         Int      @default(0) // 0-100
+  leadTier          String   @default("cold") // hot, warm, cold
+  icpFitScore       Int      @default(0) // 0-40
+  timingScore       Int      @default(0) // 0-30
+  dataQualityScore  Int      @default(0) // 0-30
+  scoredAt          DateTime?
+
+  // Pipeline status
+  contactStatus     String   @default("new") // new, contacted, replied, converted, opted_out
+  suppressedAt      DateTime?
+  suppressReason    String?
+  lastContactedAt   DateTime?
+
+  articles       ContactArticle[]
+  emails         Email[]
+  validationLogs ValidationLog[]
+  enrichment     EnrichmentData?
 
   @@index([companyId])
   @@index([workEmail])
+  @@index([emailStatus])
+  @@index([leadTier])
+  @@index([contactStatus])
 }
 
 model ContactArticle {
@@ -123,6 +162,85 @@ model ContactArticle {
 }
 
 // ==========================================
+// Validation & Enrichment
+// ==========================================
+
+model ValidationLog {
+  id            String   @id @default(cuid())
+  contactId     String
+  contact       Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  email         String
+  // Layer 1 — Syntax
+  syntaxValid   Boolean  @default(false)
+  isDisposable  Boolean  @default(false)
+  isRoleBased   Boolean  @default(false)
+  // Layer 2 — DNS / MX
+  dnsValid      Boolean  @default(false)
+  mxExists      Boolean  @default(false)
+  isCatchAll    Boolean  @default(false)
+  // Layer 3 — SMTP
+  smtpValid     Boolean? // null = inconclusive
+  smtpResponse  String?
+  // Layer 4 — Cross-Reference
+  provider1Name   String?
+  provider1Result String? // deliverable, risky, invalid, unknown
+  provider2Name   String?
+  provider2Result String?
+  // Result
+  confidence    Int      @default(0)
+  status        String   @default("pending") // pending, pass, risky, fail
+  createdAt     DateTime @default(now())
+
+  @@index([contactId])
+  @@index([email])
+}
+
+model EnrichmentData {
+  id              String   @id @default(cuid())
+  contactId       String   @unique
+  contact         Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  // Google Business Profile
+  googleRating      Float?
+  googleReviewCount Int?
+  recentReviews     String   @default("[]") // JSON array
+  reviewSentiment   String?
+  hoursUpdated      Boolean?
+  hasPhotos         Boolean?
+  googleCategory    String?
+  googleLocation    String?
+
+  // Website Analysis
+  hasWebsite        Boolean  @default(false)
+  crmDetected       String?  // none, basic, full
+  crmName           String?
+  websiteQuality    Int?
+  hasSsl            Boolean  @default(false)
+  hasIdx            Boolean  @default(false)
+  siteAge           String?
+  techStack         String   @default("[]") // JSON array
+
+  // Social & Professional
+  fbPageUrl         String?
+  fbFollowers       Int?
+  fbPostFrequency   String?  // high, medium, low, none
+  igFollowers       Int?
+  igPostFrequency   String?
+  ytHasChannel      Boolean  @default(false)
+  ytVideoCount      Int?
+  linkedinHeadline  String?
+  linkedinConnections Int?
+
+  // Business Signals & Hooks
+  signals           String   @default("[]") // JSON: [{ type, description, severity, source }]
+  hooks             String   @default("[]") // JSON: [{ text, signal, sourceUrl }]
+  leadPriority      String?  // HIGH, MEDIUM, LOW
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ==========================================
 // Email Outreach
 // ==========================================
 
@@ -132,15 +250,16 @@ model Email {
   contact      Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
   subject      String
   body         String
-  status       String    @default("draft") // draft, scheduled, sent, opened, replied
+  status       String    @default("draft") // draft, scheduled, sent, opened, replied, bounced
   sentAt       DateTime?
   openedAt     DateTime?
   repliedAt    DateTime?
+  bouncedAt    DateTime?
   scheduledFor DateTime?
   sequenceId   String?
   sequence     EmailSequence? @relation(fields: [sequenceId], references: [id])
   sequenceStep Int?
-  trackingId   String?   @unique // for open/click tracking
+  trackingId   String?   @unique
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -203,12 +322,17 @@ model Settings {
   smtpHost       String  @default("")
   smtpPort       Int     @default(587)
   smtpUser       String  @default("")
-  smtpPass       String  @default("") // encrypted in production
+  smtpPass       String  @default("")
   fromEmail      String  @default("")
   fromName       String  @default("")
   dailySendLimit Int     @default(5)
-  aiApiKey       String  @default("") // OpenAI/Anthropic key
-  aiProvider     String  @default("anthropic") // anthropic, openai
+  aiApiKey       String  @default("")
+  aiProvider     String  @default("anthropic")
+  // Validation & Enrichment API keys
+  neverBounceKey    String  @default("")
+  zeroBounceKey     String  @default("")
+  builtWithKey      String  @default("")
+  googlePlacesKey   String  @default("")
 }
 
 // ==========================================
@@ -219,8 +343,8 @@ model ScrapeJob {
   id          String   @id @default(cuid())
   icpId       String?
   status      String   @default("pending") // pending, running, completed, failed
-  type        String   @default("company_discovery") // company_discovery, contact_enrichment, news_scan
-  query       String   @default("") // search query used
+  type        String   @default("company_discovery") // company_discovery, contact_enrichment, news_scan, validation, enrichment, full_pipeline
+  query       String   @default("")
   results     String   @default("{}") // JSON results summary
   error       String?
   startedAt   DateTime?

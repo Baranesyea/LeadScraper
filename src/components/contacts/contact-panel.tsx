@@ -6,7 +6,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import {
   Sheet,
   SheetContent,
@@ -16,14 +15,20 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { ContactSocials } from "@/components/contacts/contact-socials"
 import { ContactArticles } from "@/components/contacts/contact-articles"
+import { EmailStatusBadge } from "@/components/pipeline/email-status-badge"
+import { LeadScoreBadge } from "@/components/pipeline/lead-score-badge"
+import { ScoreBreakdown } from "@/components/pipeline/score-breakdown"
+import { EnrichmentCard } from "@/components/pipeline/enrichment-card"
 import {
   Mail,
   Phone,
   Copy,
-  Sparkles,
   ArrowRight,
+  Play,
+  Loader2,
 } from "lucide-react"
 import { toast } from "sonner"
+import { useRunPipeline, useContactEnrichment } from "@/lib/hooks/use-pipeline"
 
 interface ContactPanelProps {
   contact: Contact | null
@@ -41,6 +46,23 @@ function copyToClipboard(text: string) {
 }
 
 export function ContactPanel({ contact, open, onOpenChange }: ContactPanelProps) {
+  const runPipeline = useRunPipeline()
+  const { data: enrichment } = useContactEnrichment(contact?.id ?? null)
+
+  function handleRunPipeline() {
+    if (!contact) return
+    runPipeline.mutate([contact.id], {
+      onSuccess: () => {
+        toast.success("Pipeline completed", {
+          description: `Validated, enriched, and scored ${contact.fullName}`,
+        })
+      },
+      onError: () => {
+        toast.error("Pipeline failed")
+      },
+    })
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" size="half" className="p-0 flex flex-col">
@@ -74,14 +96,15 @@ export function ContactPanel({ contact, open, onOpenChange }: ContactPanelProps)
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => {
-                        toast.success("Enrichment started", {
-                          description: `Enriching contact data for ${contact.fullName}...`,
-                        })
-                      }}
+                      onClick={handleRunPipeline}
+                      disabled={runPipeline.isPending}
                     >
-                      <Sparkles className="h-3.5 w-3.5 mr-1" />
-                      Enrich
+                      {runPipeline.isPending ? (
+                        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                      ) : (
+                        <Play className="h-3.5 w-3.5 mr-1" />
+                      )}
+                      Run Pipeline
                     </Button>
                     <Link href={`/contacts/${contact.id}`}>
                       <Button size="sm" variant="ghost">
@@ -91,11 +114,45 @@ export function ContactPanel({ contact, open, onOpenChange }: ContactPanelProps)
                     </Link>
                   </div>
                 </div>
+
+                {/* Status badges */}
+                <div className="flex items-center gap-2 mt-3 flex-wrap">
+                  <EmailStatusBadge
+                    status={contact.emailStatus ?? "unverified"}
+                    confidence={contact.emailConfidence}
+                  />
+                  {contact.leadScore > 0 && (
+                    <LeadScoreBadge
+                      score={contact.leadScore}
+                      tier={contact.leadTier ?? "cold"}
+                    />
+                  )}
+                  {contact.contactStatus !== "new" && (
+                    <Badge variant="outline" className="capitalize">
+                      {contact.contactStatus}
+                    </Badge>
+                  )}
+                </div>
               </SheetHeader>
             </div>
 
             {/* Scrollable content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Score Breakdown */}
+              {contact.leadScore > 0 && (
+                <ScoreBreakdown
+                  icpFit={contact.icpFitScore}
+                  timing={contact.timingScore}
+                  dataQuality={contact.dataQualityScore}
+                  total={contact.leadScore}
+                />
+              )}
+
+              {/* Enrichment Data */}
+              {enrichment && (
+                <EnrichmentCard data={enrichment} />
+              )}
+
               {/* Contact Information */}
               <Card>
                 <CardHeader className="pb-2">

@@ -12,6 +12,8 @@ import {
   TableCell,
 } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { EmailStatusBadge } from "@/components/pipeline/email-status-badge"
+import { LeadScoreBadge } from "@/components/pipeline/lead-score-badge"
 import type { Contact } from "@/types"
 
 interface ContactTableProps {
@@ -52,10 +54,10 @@ export function ContactTable({ contacts, onSelect }: ContactTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Title</TableHead>
               <TableHead>Company</TableHead>
-              <TableHead>Work Email</TableHead>
-              <TableHead>Phone</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Score</TableHead>
               <TableHead>LinkedIn</TableHead>
               <TableHead className="w-[60px]">Actions</TableHead>
             </TableRow>
@@ -81,16 +83,31 @@ export function ContactTable({ contacts, onSelect }: ContactTableProps) {
                           {getInitials(contact.firstName, contact.lastName)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="font-medium hover:underline">{contact.fullName}</span>
+                      <div>
+                        <span className="font-medium hover:underline">{contact.fullName}</span>
+                        <p className="text-xs text-muted-foreground">{contact.title}</p>
+                      </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{contact.title}</TableCell>
                   <TableCell>{contact.companyName}</TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-muted-foreground text-sm">
                     {contact.workEmail ?? "--"}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {contact.workPhone ?? "--"}
+                  <TableCell>
+                    <EmailStatusBadge
+                      status={contact.emailStatus ?? "unverified"}
+                      confidence={contact.emailConfidence}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {contact.leadScore > 0 ? (
+                      <LeadScoreBadge
+                        score={contact.leadScore}
+                        tier={contact.leadTier ?? "cold"}
+                      />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">--</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {contact.linkedinUrl ? (

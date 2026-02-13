@@ -1,5 +1,14 @@
 export type { FundingStage, CompanyNews, Company } from "./company";
-export type { ContactArticle, Contact } from "./contact";
+export type {
+  ContactArticle,
+  Contact,
+  EmailStatus,
+  LeadTier,
+  ContactStatus,
+  ValidationLog,
+  EnrichmentData,
+  PipelineStats,
+} from "./contact";
 export type { ICP } from "./icp";
 export type {
   EmailDraft,

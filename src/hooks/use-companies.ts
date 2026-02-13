@@ -41,6 +41,23 @@ function mapCompany(raw: any): Company {
     enrichedAt: raw.enrichedAt ?? null,
     matchedIcpId: raw.matchedIcpId ?? null,
     createdAt: raw.createdAt,
+    // Enrichment — Google Business
+    googleRating: raw.googleRating ?? null,
+    googleReviewCount: raw.googleReviewCount ?? null,
+    reviewSentiment: raw.reviewSentiment ?? null,
+    // Enrichment — Website Analysis
+    crmDetected: raw.crmDetected ?? null,
+    crmName: raw.crmName ?? null,
+    websiteQuality: raw.websiteQuality ?? null,
+    hasSsl: raw.hasSsl ?? false,
+    hasIdx: raw.hasIdx ?? false,
+    siteAge: raw.siteAge ?? null,
+    techStack: (() => {
+      if (typeof raw.techStack === "string") {
+        try { return JSON.parse(raw.techStack) } catch { return [] }
+      }
+      return Array.isArray(raw.techStack) ? raw.techStack : []
+    })(),
   }
 }
 
